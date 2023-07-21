@@ -6,5 +6,5 @@ export default () => ({
     password: process.env.POSTGRES_PASSWORD,
     database: process.env.POSTGRES_DB,
   },
-  secretKey: process.env.JWT_SECRET || 'secret-key',
+  secretKey: process.env.JWT_SECRET,
 });
