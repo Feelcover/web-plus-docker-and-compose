@@ -1,10 +1,10 @@
 export default () => ({
   database: {
-    host: 'localhost',
-    port: 5432,
-    username: 'student',
-    password: 'student',
-    database: 'kupipodariday',
+    host: process.env.POSTGRES_HOST,
+    port: process.env.POSTGRES_PORT,
+    username: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DB,
   },
   secretKey: process.env.JWT_SECRET || 'secret-key',
 });
