@@ -1,46 +1,50 @@
-import { Exclude } from 'class-transformer';
 import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUrl,
-  Length,
-} from 'class-validator';
-import { Offer } from 'src/offers/entities/offer.entity';
-import { Wish } from 'src/wishes/entities/wish.entity';
-import { WishList } from 'src/wishlists/entities/wishlist.entity';
-import { Column, Entity, OneToMany } from 'typeorm';
-import { MainEntity } from '../../utils/MainEntity';
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Wish } from '../../wishes/entities/wish.entity';
+import { Offer } from '../../offers/entities/offer.entity';
+import { Wishlist } from '../../wishlists/entities/wishlist.entity';
+import { IsEmail, IsOptional, IsUrl, Length, MinLength } from 'class-validator';
 
 @Entity()
-export class User extends MainEntity {
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   @Column({ unique: true })
-  @IsNotEmpty()
   @Length(2, 30)
-  @IsString()
   username: string;
 
   @Column({ default: 'Пока ничего не рассказал о себе' })
-  @Length(2, 200)
+  @Length(0, 200)
   @IsOptional()
-  @IsString()
   about: string;
 
   @Column({ default: 'https://i.pravatar.cc/300' })
-  @IsOptional()
   @IsUrl()
-  @IsString()
+  @IsOptional()
   avatar: string;
 
   @Column({ unique: true })
   @IsEmail()
-  @IsString()
   email: string;
 
-  @Column()
-  @Exclude()
+  @Column({ select: false })
+  @MinLength(4)
   password: string;
+
+  @Column()
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @Column()
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @OneToMany(() => Wish, (wish) => wish.owner)
   wishes: Wish[];
@@ -48,6 +52,6 @@ export class User extends MainEntity {
   @OneToMany(() => Offer, (offer) => offer.user)
   offers: Offer[];
 
-  @OneToMany(() => WishList, (wishlist) => wishlist.owner)
-  wishlists: WishList[];
+  @OneToMany(() => Wishlist, (wishlist) => wishlist.owner)
+  wishlist: Wishlist[];
 }

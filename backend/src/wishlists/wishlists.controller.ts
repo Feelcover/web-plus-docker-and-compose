@@ -1,54 +1,50 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  Param,
-  Patch,
   Post,
-  Req,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
-import { CustomRequest } from 'src/utils/CustomRequest';
+import { WishlistsService } from './wishlists.service';
 import { CreateWishlistDto } from './dto/create-wishlist.dto';
 import { UpdateWishlistDto } from './dto/update-wishlist.dto';
-import { WishlistService } from './wishlists.service';
+import { AuthGuard } from '@nestjs/passport';
 
-@UseGuards(JwtGuard)
 @Controller('wishlistlists')
+@UseGuards(AuthGuard('jwt'))
 export class WishlistsController {
-  constructor(private readonly wishListService: WishlistService) {}
+  constructor(private readonly wishlistsService: WishlistsService) {}
+
+  @Post()
+  create(@Body() createWishlistDto: CreateWishlistDto, @Req() req) {
+    return this.wishlistsService.create(createWishlistDto, req.user.id);
+  }
 
   @Get()
-  getWishlists() {
-    return this.wishListService.getWishLists();
+  getAllWishlists() {
+    return this.wishlistsService.getAllWishlists();
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.wishListService.getById(+id);
-  }
-
-  @Post()
-  create(
-    @Body() createWishlistDto: CreateWishlistDto,
-    @Req() req: CustomRequest,
-  ) {
-    return this.wishListService.create(createWishlistDto, req.user.id);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: CustomRequest) {
-    return this.wishListService.delete(+id, req.user.id);
+  getWishListById(@Param('id') id: string) {
+    return this.wishlistsService.getWishListById(+id);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateWishlistDto: UpdateWishlistDto,
-    @Req() req: CustomRequest,
+    @Req() req,
   ) {
-    return this.wishListService.update(+id, updateWishlistDto, req.user.id);
+    return this.wishlistsService.update(+id, updateWishlistDto, req.user.id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Req() req) {
+    return this.wishlistsService.remove(+id, req.user.id);
   }
 }

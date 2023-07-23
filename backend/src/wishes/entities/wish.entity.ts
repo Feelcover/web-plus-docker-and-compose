@@ -1,45 +1,64 @@
-import { IsInt, IsString, IsUrl, Length } from 'class-validator';
-import { Offer } from 'src/offers/entities/offer.entity';
-import { User } from 'src/users/entities/user.entity';
-import { MainEntity } from 'src/utils/MainEntity';
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { Offer } from '../../offers/entities/offer.entity';
+import { Wishlist } from '../../wishlists/entities/wishlist.entity';
+import { IsOptional, IsUrl, Length, Min } from 'class-validator';
 
 @Entity()
-export class Wish extends MainEntity {
+export class Wish {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   @Column()
   @Length(1, 250)
-  @IsString()
   name: string;
 
   @Column()
   @IsUrl()
-  @IsString()
   link: string;
 
   @Column()
   @IsUrl()
-  @IsString()
   image: string;
 
-  @Column({ scale: 2 })
-  @IsInt()
+  @Column('decimal')
+  @Min(1)
   price: number;
 
-  @Column({ scale: 2, default: 0 })
-  @IsInt()
+  @Column('decimal', { default: 0 })
   raised: number;
 
-  @ManyToOne(() => User, (asd) => asd.wishes)
-  owner: User;
+  @Column({ default: 'Пока нет описания' })
+  @Length(1, 1024)
+  @IsOptional()
+  description: string;
+
+  @Column({ default: 0 })
+  copied: number;
 
   @Column()
-  @Length(1, 1024)
-  @IsString()
-  description: string;
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @Column()
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @ManyToOne(() => User, (user) => user.wishes)
+  owner: User;
 
   @OneToMany(() => Offer, (offer) => offer.item)
   offers: Offer[];
 
-  @Column({ default: 0 })
-  copied: number;
+  @ManyToMany(() => Wishlist, (wishlist) => wishlist.items)
+  wishlist: Wishlist[];
 }

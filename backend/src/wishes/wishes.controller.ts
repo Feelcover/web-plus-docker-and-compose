@@ -1,64 +1,64 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  Param,
-  Patch,
   Post,
-  Req,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
-import { CustomRequest } from 'src/utils/CustomRequest';
-import { UpdateWishDto } from './dto/update-wish.dto';
 import { WishesService } from './wishes.service';
+import { CreateWishDto } from './dto/create-wish.dto';
+import { UpdateWishDto } from './dto/update-wish.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('wishes')
 export class WishesController {
   constructor(private readonly wishesService: WishesService) {}
 
+  @Post()
+  @UseGuards(AuthGuard('jwt'))
+  create(@Body() createWishDto: CreateWishDto, @Req() req) {
+    return this.wishesService.create(createWishDto, req.user.id);
+  }
+
   @Get('last')
   getLastWishes() {
-    return this.wishesService.getLast();
+    return this.wishesService.getLastWishes();
   }
 
   @Get('top')
   getTopWishes() {
-    return this.wishesService.getTop();
+    return this.wishesService.getTopWishes();
   }
 
-  @UseGuards(JwtGuard)
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.wishesService.getById(+id);
+  @UseGuards(AuthGuard('jwt'))
+  getOneWish(@Param('id') id: string) {
+    return this.wishesService.getOneWish(+id);
   }
 
-  @UseGuards(JwtGuard)
-  @Post()
-  create(@Body() CreateWishDto, @Req() req: CustomRequest) {
-    return this.wishesService.create(CreateWishDto, req.user.id);
-  }
-
-  @UseGuards(JwtGuard)
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
   update(
     @Param('id') id: string,
-    @Req() req: CustomRequest,
     @Body() updateWishDto: UpdateWishDto,
+    @Req() req,
   ) {
-    return this.wishesService.updateOne(+id, req.user.id, updateWishDto);
+    return this.wishesService.update(+id, updateWishDto, req.user.id);
   }
 
-  @UseGuards(JwtGuard)
   @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: CustomRequest) {
-    return this.wishesService.removeOne(+id, req.user.id);
+  @UseGuards(AuthGuard('jwt'))
+  remove(@Param('id') id: string, @Req() req) {
+    return this.wishesService.remove(+id, req.user.id);
   }
 
-  @UseGuards(JwtGuard)
   @Post(':id/copy')
-  copy(@Param('id') wishId: string, @Req() req: CustomRequest) {
-    return this.wishesService.copiedWish(+wishId, req.user.id);
+  @UseGuards(AuthGuard('jwt'))
+  copy(@Param('id') id: string, @Req() req) {
+    return this.wishesService.copy(+id, req.user.id);
   }
 }
