@@ -1,29 +1,29 @@
-import { Controller, Post, Req, Body, UseGuards } from '@nestjs/common';
+import { Controller, Body, Req, UseGuards, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from 'src/users/users.service';
-import { LocalAuthGuard } from './local-auth.guard';
-import { RequestWithUser } from 'src/utils/request-with-user';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { LocalGuard } from './guards/local-auth.guard';
+import { User } from 'src/users/entities/user.entity';
 
 @Controller()
 export class AuthController {
   constructor(
-    private authService: AuthService,
-    private userService: UsersService,
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
   ) {}
 
-  @UseGuards(LocalAuthGuard)
+  @UseGuards(LocalGuard)
   @Post('signin')
-  signin(@Req() req: RequestWithUser) {
+  async signin(@Req() req: Request & { user: User }) {
     return this.authService.auth(req.user);
   }
 
   @Post('signup')
   async signup(@Body() createUserDto: CreateUserDto) {
     const { about, ...rest } = createUserDto;
-    const dto = (about === '' ? rest : createUserDto) as CreateUserDto;
-    const user = await this.userService.create(dto);
+    const userDto = (about !== '' ? createUserDto : rest) as CreateUserDto;
 
+    const user = await this.usersService.create(userDto);
     this.authService.auth(user);
 
     return user;

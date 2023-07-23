@@ -1,22 +1,38 @@
-import { IsOptional, IsUrl, Length, MaxLength } from 'class-validator';
+import { Entity, Column, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
+import {
+  IsString,
+  Length,
+  IsUrl,
+  IsOptional,
+  MaxLength,
+} from 'class-validator';
+import { MainEntity } from 'src/custom-entities/main.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Base } from 'src/utils/base-entity';
-import { WishPartialDto } from 'src/wishes/dto/wish-partial.dto';
 import { Wish } from 'src/wishes/entities/wish.entity';
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 
 @Entity()
-export class Wishlist extends Base {
-  @Column()
+export class WishList extends MainEntity {
+  @Column({
+    type: 'varchar',
+    length: 250,
+  })
+  @IsString()
   @Length(1, 250)
   name: string;
 
-  @Column({ nullable: true })
-  @MaxLength(1500)
+  @Column({
+    type: 'varchar',
+    length: 1500,
+    nullable: true,
+  })
   @IsOptional()
+  @MaxLength(1500)
+  @IsString()
   description: string;
 
-  @Column()
+  @Column({
+    nullable: true,
+  })
   @IsUrl()
   image: string;
 
@@ -25,5 +41,5 @@ export class Wishlist extends Base {
 
   @ManyToMany(() => Wish)
   @JoinTable()
-  items: WishPartialDto[];
+  items: Wish[];
 }

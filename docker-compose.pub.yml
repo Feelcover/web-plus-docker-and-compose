@@ -3,35 +3,20 @@ version: '3'
 services:
   backend:
     container_name: 'kupipodariday-backend'
-    build:
-      context: backend
-      dockerfile: Dockerfile.dev
+    image: waysamurai/kupipodariday-backend:1.0.0
     env_file: .env
-    volumes:
-      - type: bind
-        source: ./backend/src
-        target: /app/src
     restart: always
     ports:
       - '4000:3000'
     depends_on:
       - postgres
-    networks:
+    networks: 
       - backend
 
   frontend:
     container_name: 'kupipodariday-frontend'
-    build:
-      context: frontend
-      dockerfile: Dockerfile.dev
-    volumes:
-      - type: bind
-        source: ./frontend/src
-        target: /app/src
+    image:  waysamurai/kupipodariday-frontend:1.0.0
     restart: always
-    env_file: .env
-    environment:
-      CHOKIDAR-USEPOOLING: 'true'
     ports:
       - '3001:3000'
     networks:
@@ -42,24 +27,24 @@ services:
     image: postgres:12.12-alpine
     restart: always
     env_file: .env
-    volumes:
+    volumes: 
       - ~/pg_data:/var/lib/postgresql/data
-
+    
     networks:
       - backend
 
   adminer:
     image: adminer
     restart: always
-    ports:
+    ports: 
       - 8080:8080
     depends_on:
-      - postgres
-    networks:
+      - postgres  
+    networks: 
       - backend
 
-volumes:
-  postgres_data:
+volumes: 
+  postgres_data: 
 
 networks:
   backend:

@@ -2,8 +2,9 @@
 node_modules/
 
 # Docker
-Dockerfile
-docker-compose.yml
+#Dockerfile.pub
+#Dockerfile.dev
+#docker-compose.yml
 
 # README и файлы лицензий
 README.md
@@ -13,7 +14,7 @@ LICENSE
 dist/
 build/
 
-# IDE Files
+# IDE Files
 .idea/
 .vscode
-.DS_Store 
+.DS_Store

@@ -5,10 +5,16 @@ import {
   FindManyOptions,
   FindOneOptions,
   Repository,
+  In,
 } from 'typeorm';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { Wish } from './entities/wish.entity';
+import {
+  ALREADY_OWNED,
+  RAISED_NOT_NULL,
+  USER_NOT_OWNER,
+} from 'src/utils/constants/wishes';
 
 @Injectable()
 export class WishesService {
@@ -18,7 +24,33 @@ export class WishesService {
     private wishesRepository: Repository<Wish>,
   ) {}
 
-  create(createWishDto: CreateWishDto, ownerId: number) {
+  findAll(query: FindManyOptions<Wish>): Promise<Wish[]> {
+    return this.wishesRepository.find(query);
+  }
+
+  findOne(query: FindOneOptions<Wish>): Promise<Wish> {
+    return this.wishesRepository.findOne(query);
+  }
+
+  async findManyByIdArr(idArr: number[]): Promise<Wish[]> {
+    return this.wishesRepository.find({
+      where: { id: In(idArr) },
+    });
+  }
+
+  getLast(): Promise<Wish[]> {
+    return this.findAll({ order: { createdAt: 'DESC' }, take: 40 });
+  }
+
+  getTop(): Promise<Wish[]> {
+    return this.findAll({ order: { copied: 'DESC' }, take: 10 });
+  }
+
+  getById(id: number): Promise<Wish> {
+    return this.findOne({ where: { id }, relations: { owner: true } });
+  }
+
+  create(createWishDto: CreateWishDto, ownerId: number): Promise<Wish> {
     const wish = this.wishesRepository.create({
       ...createWishDto,
       owner: { id: ownerId },
@@ -26,74 +58,50 @@ export class WishesService {
     return this.wishesRepository.save(wish);
   }
 
-  async findAll(query: FindManyOptions<Wish>) {
-    return this.wishesRepository.find(query);
-  }
-
-  async findOne(query: FindOneOptions<Wish>) {
-    return this.wishesRepository.findOne(query);
-  }
-
-  getLastWishes() {
-    return this.findAll({ order: { createdAt: 'DESC' }, take: 40 });
-  }
-
-  getTopWishes() {
-    return this.findAll({ order: { copied: 'DESC' }, take: 10 });
-  }
-
-  async getById(id: number) {
-    return this.findOne({ where: { id }, relations: { owner: true } });
-  }
-
-  async update(id: number, userId: number, updateWishDto: UpdateWishDto) {
+  async updateOne(
+    id: number,
+    userId: number,
+    updateWishDto: UpdateWishDto,
+  ): Promise<unknown> {
     const wish = await this.findOne({
       where: { id },
       relations: { owner: true },
     });
-
     if (userId !== wish.owner.id) {
-      throw new ForbiddenException(
-        'Вы можете редактировать только свои подборки подарков',
-      );
+      throw new ForbiddenException(USER_NOT_OWNER);
     }
-
     if (updateWishDto.price && wish.raised > 0) {
-      throw new ForbiddenException(
-        'Нельзя изменять стоимость подарка, уже есть желающие скинуться',
-      );
+      throw new ForbiddenException(RAISED_NOT_NULL);
     }
-
     return this.wishesRepository.update(id, updateWishDto);
   }
 
-  async remove(id: number, userId: number) {
+  async removeOne(id: number, userId: number): Promise<unknown> {
     const wish = await this.findOne({
       where: { id },
       relations: { owner: true },
     });
-
     if (userId !== wish.owner.id) {
-      throw new ForbiddenException(
-        'Вы можете удалять только свои подборки подарков',
-      );
+      throw new ForbiddenException(USER_NOT_OWNER);
     }
 
     this.wishesRepository.delete(id);
     return wish;
   }
 
-  async copy(wishId: number, userId: number) {
-    const wish = await this.findOne({ where: { id: wishId } });
+  async copiedWish(wishId: number, userId: number): Promise<unknown> {
+    const wish = await this.findOne({
+      where: { id: wishId },
+    });
     const { name, description, image, link, price, copied } = wish;
 
-    const isExist = !!(await this.findOne({
+    const findWish = !!(await this.findOne({
       where: { name, link, price, owner: { id: userId } },
       relations: { owner: true },
     }));
 
-    if (isExist) {
-      throw new ForbiddenException('У Вас уже есть копия этого подарка');
+    if (findWish) {
+      throw new ForbiddenException(ALREADY_OWNED);
     }
 
     const wishCopy = {
