@@ -8,9 +8,7 @@ services:
       dockerfile: Dockerfile.dev
     env_file: .env
     volumes:
-      - type: bind
-        source: ./backend/src
-        target: /app/src
+      - ./backend/src:/app/src
     restart: always
     ports:
       - '4000:3000'
@@ -25,15 +23,13 @@ services:
       context: frontend
       dockerfile: Dockerfile.dev
     volumes:
-      - type: bind
-        source: ./frontend/src
-        target: /app/src
+      - ./frontend/src:/app/src
     restart: always
     env_file: .env
     environment:
-      CHOKIDAR-USEPOOLING: 'true'
+      CHOKIDAR_USEPOLLING: 'true'
     ports:
-      - '3001:3000'
+      - '3001:80'
     networks:
       - frontend
 
@@ -44,7 +40,6 @@ services:
     env_file: .env
     volumes:
       - ~/pg_data:/var/lib/postgresql/data
-
     networks:
       - backend
 
