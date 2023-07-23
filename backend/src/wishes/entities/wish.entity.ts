@@ -1,23 +1,11 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-  ManyToMany,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { Offer } from '../../offers/entities/offer.entity';
-import { Wishlist } from '../../wishlists/entities/wishlist.entity';
-import { IsOptional, IsUrl, Length, Min } from 'class-validator';
+import { IsUrl, Length } from 'class-validator';
+import { Offer } from 'src/offers/entities/offer.entity';
+import { User } from 'src/users/entities/user.entity';
+import { Base } from 'src/utils/base-entity';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity()
-export class Wish {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class Wish extends Base {
   @Column()
   @Length(1, 250)
   name: string;
@@ -30,35 +18,22 @@ export class Wish {
   @IsUrl()
   image: string;
 
-  @Column('decimal')
-  @Min(1)
+  @Column({ scale: 2 })
   price: number;
 
-  @Column('decimal', { default: 0 })
+  @Column({ scale: 2, default: 0 })
   raised: number;
-
-  @Column({ default: 'Пока нет описания' })
-  @Length(1, 1024)
-  @IsOptional()
-  description: string;
-
-  @Column({ default: 0 })
-  copied: number;
-
-  @Column()
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @Column()
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.wishes)
   owner: User;
 
+  @Column()
+  @Length(1, 1024)
+  description: string;
+
   @OneToMany(() => Offer, (offer) => offer.item)
   offers: Offer[];
 
-  @ManyToMany(() => Wishlist, (wishlist) => wishlist.items)
-  wishlist: Wishlist[];
+  @Column({ default: 0 })
+  copied: number;
 }

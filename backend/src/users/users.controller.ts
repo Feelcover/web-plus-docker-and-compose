@@ -1,49 +1,55 @@
 import {
   Controller,
   Get,
+  Post,
   Body,
   Patch,
   Param,
   UseGuards,
   Req,
-  Post,
 } from '@nestjs/common';
+import { JwtGuard } from 'src/auth/jwt.guard';
+import { RequestWithUser } from 'src/utils/request-with-user';
 import { UsersService } from './users.service';
+import { FindUserDto } from './dto/find-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthGuard } from '@nestjs/passport';
 
+@UseGuards(JwtGuard)
 @Controller('users')
-@UseGuards(AuthGuard('jwt'))
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  getCurrentUser(@Req() req) {
-    return this.usersService.getCurrentUser(req.user.id);
+  async getUser(@Req() req: RequestWithUser) {
+    return req.user;
   }
 
   @Patch('me')
-  updateUser(@Body() updateUserDto: UpdateUserDto, @Req() req) {
-    return this.usersService.updateUser(updateUserDto, req.user.id);
+  async updateUser(
+    @Body() updateUserDto: UpdateUserDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.usersService.updateOne(req.user.id, updateUserDto);
   }
 
   @Get('me/wishes')
-  getCurrentUserWishes(@Req() req) {
-    return this.usersService.getCurrentUserWishes(req.user.id);
-  }
-
-  @Post('find')
-  findManyUsers(@Body('query') query: string) {
-    return this.usersService.findManyUsers(query);
+  getMyWishes(@Req() req: RequestWithUser) {
+    return this.usersService.getMyWishes(req.user.id);
   }
 
   @Get(':username')
-  getUserByUsername(@Param('username') username: string) {
-    return this.usersService.getUserByUsername(username);
+  getByUsername(@Param('username') username: string) {
+    return this.usersService.getByUsername(username);
   }
 
   @Get(':username/wishes')
-  getWishesByUsername(@Param('username') username: string) {
-    return this.usersService.getWishesByUsername(username);
+  getUserWishes(@Param('username') username: string) {
+    return this.usersService.getUserWishes(username);
+  }
+
+  @Post('find')
+  findByUserNameOrEmail(@Body() findUserDto: FindUserDto) {
+    const { query } = findUserDto;
+    return this.usersService.findByUsernameOrEmail(query);
   }
 }

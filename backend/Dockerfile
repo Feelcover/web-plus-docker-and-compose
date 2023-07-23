@@ -1,23 +1,18 @@
-# С помощью директивы AS можно дать образу имя
 FROM node:16-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-# Устанавливаем зависимости
-RUN npm ci
-# Копируем исходный код и собираем приложение
+RUN npm i
 COPY . .
-RUN npm run build
+RUN npm run build \
+    && rm -rf ./src \
+    && rm -rf ./node_modules
 
-FROM node:16-alpine AS backend
+FROM node:16-alpine as backend
 WORKDIR /app
-# С помощью параметера --from указываем, что копировать нужно из образа builder
-# Копируем package.json и package-lock.json (потребуются для установки зависимостей)
-COPY --from=builder /app/package*.json ./
-# Устанавливаем только зависимости, необходимые в продакшене
-# --omit=dev означает пропустить dev-зависимости
-RUN npm ci --omit=dev --no-audit && npm i pm2 -g
-# Копируем директорию со сборкой приложения
-COPY --from=builder /app/dist ./dist
-EXPOSE 4000
-# Указываем команду для запуска приложения
-CMD ["pm2-runtime", "start", "./dist/main.js"]
+COPY package*.json ./
+RUN npm i --omit=dev --audit=false && npm i -g pm2
+COPY --from=builder /app/dist/ ./dist
+COPY ./ecosystem.config.js ./
+EXPOSE 3000
+
+CMD ["pm2-runtime", "start", "ecosystem.config.js"]

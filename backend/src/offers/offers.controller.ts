@@ -9,25 +9,26 @@ import {
 } from '@nestjs/common';
 import { OffersService } from './offers.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { JwtGuard } from 'src/auth/jwt.guard';
+import { RequestWithUser } from 'src/utils/request-with-user';
 
+@UseGuards(JwtGuard)
 @Controller('offers')
-@UseGuards(AuthGuard('jwt'))
 export class OffersController {
   constructor(private readonly offersService: OffersService) {}
 
   @Post()
-  create(@Body() createOfferDto: CreateOfferDto, @Req() req) {
+  create(@Body() createOfferDto: CreateOfferDto, @Req() req: RequestWithUser) {
     return this.offersService.create(createOfferDto, req.user.id);
   }
 
   @Get()
-  getAllOffers() {
-    return this.offersService.getAllOffers();
+  getOffers() {
+    return this.offersService.getOffers();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.offersService.findOne(+id);
+  getById(@Param('id') id: string) {
+    return this.offersService.getById(+id);
   }
 }

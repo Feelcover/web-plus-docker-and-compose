@@ -1,28 +1,18 @@
-import { IsOptional, IsUrl, Length } from 'class-validator';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  ManyToMany,
-  JoinTable,
-  UpdateDateColumn,
-  CreateDateColumn,
-} from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { Wish } from '../../wishes/entities/wish.entity';
+import { IsOptional, IsUrl, Length, MaxLength } from 'class-validator';
+import { User } from 'src/users/entities/user.entity';
+import { Base } from 'src/utils/base-entity';
+import { WishPartialDto } from 'src/wishes/dto/wish-partial.dto';
+import { Wish } from 'src/wishes/entities/wish.entity';
+import { Column, Entity, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 
 @Entity()
-export class Wishlist {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class Wishlist extends Base {
   @Column()
-  @Length(0, 250)
+  @Length(1, 250)
   name: string;
 
-  @Column({ default: 'Пока нет отписания' })
-  @Length(1, 1500)
+  @Column({ nullable: true })
+  @MaxLength(1500)
   @IsOptional()
   description: string;
 
@@ -30,18 +20,10 @@ export class Wishlist {
   @IsUrl()
   image: string;
 
-  @ManyToMany(() => Wish, (wish) => wish.wishlist)
-  @JoinTable()
-  items: Wish[];
-
-  @Column()
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @Column()
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @ManyToOne(() => User, (user) => user.wishes)
+  @ManyToOne(() => User, (user) => user.wishlists)
   owner: User;
+
+  @ManyToMany(() => Wish)
+  @JoinTable()
+  items: WishPartialDto[];
 }

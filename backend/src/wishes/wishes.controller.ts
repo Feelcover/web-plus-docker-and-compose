@@ -6,21 +6,22 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { WishesService } from './wishes.service';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { JwtGuard } from 'src/auth/jwt.guard';
+import { RequestWithUser } from 'src/utils/request-with-user';
 
 @Controller('wishes')
 export class WishesController {
   constructor(private readonly wishesService: WishesService) {}
 
+  @UseGuards(JwtGuard)
   @Post()
-  @UseGuards(AuthGuard('jwt'))
-  create(@Body() createWishDto: CreateWishDto, @Req() req) {
+  create(@Body() createWishDto: CreateWishDto, @Req() req: RequestWithUser) {
     return this.wishesService.create(createWishDto, req.user.id);
   }
 
@@ -34,31 +35,31 @@ export class WishesController {
     return this.wishesService.getTopWishes();
   }
 
+  @UseGuards(JwtGuard)
   @Get(':id')
-  @UseGuards(AuthGuard('jwt'))
-  getOneWish(@Param('id') id: string) {
-    return this.wishesService.getOneWish(+id);
+  getById(@Param('id') id: string) {
+    return this.wishesService.getById(+id);
   }
 
+  @UseGuards(JwtGuard)
   @Patch(':id')
-  @UseGuards(AuthGuard('jwt'))
   update(
     @Param('id') id: string,
+    @Req() req: RequestWithUser,
     @Body() updateWishDto: UpdateWishDto,
-    @Req() req,
   ) {
-    return this.wishesService.update(+id, updateWishDto, req.user.id);
+    return this.wishesService.update(+id, req.user.id, updateWishDto);
   }
 
+  @UseGuards(JwtGuard)
   @Delete(':id')
-  @UseGuards(AuthGuard('jwt'))
-  remove(@Param('id') id: string, @Req() req) {
+  remove(@Param('id') id: string, @Req() req: RequestWithUser) {
     return this.wishesService.remove(+id, req.user.id);
   }
 
+  @UseGuards(JwtGuard)
   @Post(':id/copy')
-  @UseGuards(AuthGuard('jwt'))
-  copy(@Param('id') id: string, @Req() req) {
-    return this.wishesService.copy(+id, req.user.id);
+  copy(@Param('id') wishId: string, @Req() req: RequestWithUser) {
+    return this.wishesService.copy(+wishId, req.user.id);
   }
 }
