@@ -1,22 +1,27 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { UsersService } from 'src/users/users.service';
+import { LocalAuthGuard } from './guard/local-auth.guard';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { SigninUserDto } from 'src/users/dto/signin-user.dto';
-import { User } from 'src/users/entities/user.entity';
+import { instanceToPlain } from 'class-transformer';
+import { AuthUser } from 'src/common/decorators/user.decorator';
 
-@Controller('/')
+@Controller()
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-  ) { }
+    private readonly usersService: UsersService,
+  ) {}
 
-  @Post('/signup')
-  async createUser(@Body() body: CreateUserDto): Promise<User> {
-    return await this.authService.signUp(body);
+  @UseGuards(LocalAuthGuard)
+  @Post('signin')
+  login(@AuthUser() user): Promise<any> {
+    return this.authService.login(user);
   }
 
-  @Post('/signin')
-  async signIn(@Body() body: SigninUserDto): Promise<{ access_token: string }> {
-    return this.authService.signIn(body);
+  @Post('signup')
+  async signup(@Body() createUserDto: CreateUserDto) {
+    const user = await this.usersService.signup(createUserDto);
+    return instanceToPlain(user);
   }
 }

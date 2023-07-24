@@ -11,53 +11,58 @@ import {
 import { WishesService } from './wishes.service';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
-import { JwtGuard } from 'src/auth/jwtGuard';
-import { Wish } from './entities/wish.entity';
-import { DeleteResult } from 'typeorm';
-import { AuthUser } from 'src/decorators/user.decorator';
+import { AuthUser } from 'src/common/decorators/user.decorator';
 import { User } from 'src/users/entities/user.entity';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { Wish } from './entities/wish.entity';
 
 @Controller('wishes')
 export class WishesController {
-  constructor(private readonly wishesService: WishesService) { }
+  constructor(private readonly wishesService: WishesService) {}
 
-  @UseGuards(JwtGuard)
   @Post()
-  postWish(@AuthUser() user: User, @Body() body: CreateWishDto): Promise<Wish> {
-    return this.wishesService.createWish(body, user);
+  @UseGuards(JwtAuthGuard)
+  create(
+    @AuthUser() user: User,
+    @Body() createWishDto: CreateWishDto,
+  ): Promise<Wish> {
+    return this.wishesService.create(user, createWishDto);
   }
 
-  @Get('/last')
-  getLastWishInfo(): Promise<Wish[]> {
-    return this.wishesService.getLastWish();
-  }
-
-  @Get('/top')
-  getTopWishInfo(): Promise<Wish[]> {
-    return this.wishesService.getTopWish();
-  }
-
-  @UseGuards(JwtGuard)
-  @Get(':id')
-  getWishByIdInfo(@Param('id') id: number): Promise<Wish> {
-    return this.wishesService.getWishById(id);
-  }
-
-  @UseGuards(JwtGuard)
-  @Patch(':id')
-  updateWishById(@AuthUser() user: User, @Param('id') id: number, body: UpdateWishDto): Promise<Wish> {
-    return this.wishesService.updateWish(user, id, body);
-  }
-
-  @UseGuards(JwtGuard)
-  @Delete(':id')
-  deleteWishById(@AuthUser() user: User, @Param('id') id: number): Promise<DeleteResult> {
-    return this.wishesService.deleteWish(id, user);
-  }
-
-  @UseGuards(JwtGuard)
   @Post(':id/copy')
-  copyWishById(@AuthUser() user: User, @Param('id') id: number): Promise<Wish> {
-    return this.wishesService.copyWish(id, user);
+  @UseGuards(JwtAuthGuard)
+  copy(@AuthUser() user: User, @Param('id') id: number) {
+    return this.wishesService.copy(user, id);
+  }
+
+  @Get('last')
+  findLast() {
+    return this.wishesService.findLast();
+  }
+
+  @Get('top')
+  findTop() {
+    return this.wishesService.findTop();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.wishesService.findOne(+id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  update(
+    @AuthUser() user: User,
+    @Param('id') id: number,
+    @Body() updateWishDto: UpdateWishDto,
+  ) {
+    return this.wishesService.update(user, +id, updateWishDto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  remove(@AuthUser() user: User, @Param('id') id: number): Promise<Wish> {
+    return this.wishesService.remove(user, id);
   }
 }

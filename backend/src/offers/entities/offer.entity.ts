@@ -1,44 +1,40 @@
-import { IsBoolean, IsNotEmpty, IsNumber, IsPositive } from 'class-validator';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
+  Entity,
   ManyToOne,
-  JoinColumn,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity()
 export class Offer {
   @PrimaryGeneratedColumn()
-  @IsNotEmpty()
   id: number;
 
-  @CreateDateColumn()
-  @IsNotEmpty()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  @IsNotEmpty()
-  updatedAt: Date;
-
   @ManyToOne(() => User, (user) => user.offers)
-  @JoinColumn()
   user: User;
 
-  @ManyToOne(() => Wish, (wish) => wish.id)
+  @ManyToOne(() => Wish, (wish) => wish.offers)
   item: Wish;
 
-  @Column()
-  @IsPositive()
-  @IsNotEmpty()
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @Column({
+    type: 'real',
+  })
   amount: number;
 
-  @Column({ default: false })
-  @IsBoolean()
+  @Column({
+    type: 'boolean',
+  })
   hidden: boolean;
+
+  @Column()
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @Column()
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

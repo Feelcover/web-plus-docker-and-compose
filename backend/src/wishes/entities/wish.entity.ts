@@ -1,79 +1,78 @@
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsPositive,
-  IsString,
-  IsUrl,
-  Length,
-  Min,
-} from 'class-validator';
+import { IsUrl, Length } from 'class-validator';
 import { Offer } from 'src/offers/entities/offer.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
-  OneToMany,
   CreateDateColumn,
-  UpdateDateColumn,
+  Entity,
+  JoinColumn,
   ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity()
 export class Wish {
-
   @PrimaryGeneratedColumn()
-  @IsNotEmpty()
   id: number;
 
-  @CreateDateColumn()
-  @IsNotEmpty()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  @IsNotEmpty()
-  updatedAt: Date;
-
-  @Column()
-  @IsNotEmpty()
-  @Length(2, 250)
+  @Column({
+    type: 'varchar',
+    length: 250,
+  })
   name: string;
 
-  @Column()
   @IsUrl()
-  @IsNotEmpty()
+  @Column({
+    type: 'varchar',
+    length: 2048,
+  })
   link: string;
 
-  @Column()
   @IsUrl()
-  @IsNotEmpty()
+  @Column({
+    type: 'varchar',
+    length: 2048,
+  })
   image: string;
 
-  @Column()
-  @Min(1)
-  @IsPositive()
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @Column({
+    type: 'real',
+    default: 0,
+  })
   price: number;
 
-  @Column()
-  @Min(1)
-  @IsPositive()
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @Column({
+    type: 'real',
+    default: 0,
+  })
   raised: number;
 
-  @Column()
-  @IsString()
+  @ManyToOne(() => User, (user) => user.wishes)
+  @JoinColumn()
+  owner: User;
+
+  @Column({
+    type: 'varchar',
+    length: 1024,
+  })
   @Length(1, 1024)
   description: string;
 
-  @Column()
-  @IsPositive()
-  @IsNumber()
-  copied: number;
-
-  @ManyToOne(() => User, (user) => user.id)
-  owner: User;
-
   @OneToMany(() => Offer, (offer) => offer.item)
   offers: Offer[];
+
+  @Column({
+    default: 0,
+  })
+  copied: number;
+
+  @Column()
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @Column()
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

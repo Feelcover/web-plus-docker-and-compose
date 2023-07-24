@@ -1,51 +1,57 @@
-import { IsNotEmpty, IsString, Length, MaxLength } from 'class-validator';
+import { IsUrl, Length } from 'class-validator';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
+  Entity,
   JoinTable,
   ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity()
 export class Wishlist {
   @PrimaryGeneratedColumn()
-  @IsNotEmpty()
   id: number;
 
-  @CreateDateColumn()
-  @IsNotEmpty()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  @IsNotEmpty()
-  updatedAt: Date;
-
-  @Column()
-  @IsNotEmpty()
-  @IsString()
+  @Column({
+    type: 'varchar',
+    length: 250,
+    unique: true,
+  })
   @Length(1, 250)
   name: string;
 
-  @Column({ default: '' })
-  @IsString()
-  @MaxLength(1500)
+  @Column({
+    type: 'varchar',
+    length: 1500,
+    nullable: true,
+  })
+  @Length(1, 1500)
   description: string;
 
-  @Column()
-  @IsNotEmpty()
-  @IsString()
+  @IsUrl()
+  @Column({
+    type: 'varchar',
+    length: 2048,
+  })
   image: string;
-
-  @ManyToMany(() => Wish, (wish) => wish.id)
-  @JoinTable()
-  items: Wish[];
 
   @ManyToOne(() => User, (user) => user.wishlists)
   owner: User;
+
+  @ManyToMany(() => Wish, { cascade: true })
+  @JoinTable()
+  items: Wish[];
+
+  @Column()
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @Column()
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

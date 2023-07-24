@@ -1,49 +1,89 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  Logger,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { FindUserDto } from './dto/find-user.dto';
-import { JwtGuard } from 'src/auth/jwtGuard';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { AuthUser } from 'src/common/decorators/user.decorator';
 import { User } from './entities/user.entity';
-import { AuthUser } from 'src/decorators/user.decorator';
+import { UserDto } from './dto/user.dto';
 import { Wish } from 'src/wishes/entities/wish.entity';
+import { SearchUserDto } from './dto/search-user.dto';
 
 @Controller('users')
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-  ) { }
+  constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtGuard)
-  @Get('/me')
-  getProfileInfo(@AuthUser() user: User): Promise<User> {
-    return this.usersService.getProfile(user.username);
-  }
+  private readonly logger = new Logger(UsersService.name);
 
-  @UseGuards(JwtGuard)
-  @Patch('/me')
-  editUser(@AuthUser() user: User, @Body() userData: UpdateUserDto): Promise<User> {
-    return this.usersService.updateProfile(user, userData);
-  }
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@AuthUser() user: User): Promise<UserDto> {
+    const userId = user.id;
+    this.logger.debug(
+      `Получен запрос на предоставление информации о пользователе по ID ${userId}`,
+    );
+    const userDto = await this.usersService.findById(userId);
 
-  @UseGuards(JwtGuard)
-  @Get('/me/wishes')
-  getProfileWishesInfo(@AuthUser() user: User): Promise<Wish[]> {
-    return this.usersService.getProfileWishes(user.id);
+    this.logger.debug(
+      `Запрос на предоставление информации о пользователе по ID ${userId} успешно выполнен`,
+    );
+    return userDto;
   }
 
   @Get(':username')
-  getUserInfo(@Param('username') username: string): Promise<User> {
-    return this.usersService.getUser(username);
+  findByUserName(@Param('username') username: string): Promise<UserDto> {
+    return this.usersService.findByName(username);
   }
 
-  @Get('/:username/wishes')
-  getUserWishesInfo(@Param('username') username: string): Promise<Wish[]> {
-    return this.usersService.getUserWishes(username);
+  @Get('me/wishes')
+  @UseGuards(JwtAuthGuard)
+  findWishes(@AuthUser() user: User): Promise<Wish[]> {
+    return this.usersService.findWishes(user);
   }
 
-  @UseGuards(JwtGuard)
-  @Post('/find')
-  findUserInfo(@Body() body: FindUserDto): Promise<User[]> {
-    return this.usersService.findUser(body);
+  @Get(':username/wishes')
+  @UseGuards(JwtAuthGuard)
+  findWishesByUserName(@Param('username') username: string): Promise<Wish[]> {
+    return this.usersService.findWishesByUserName(username);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  findAll() {
+    return this.usersService.findAll();
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  update(
+    @AuthUser() user: User,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<UserDto> {
+    const userId = user.id;
+    this.logger.debug(
+      `Получен запрос на обновление информации о пользователе по ID ${userId}.`,
+    );
+
+    const userDto = this.usersService.update(userId, updateUserDto);
+
+    this.logger.debug(
+      `Запрос на обновление информации о пользователе по ID ${userId} успешно выполнен.`,
+    );
+
+    return userDto;
+  }
+
+  @Post('find')
+  @UseGuards(JwtAuthGuard)
+  findMany(@Body() searchUser: SearchUserDto): Promise<User[]> {
+    return this.usersService.findMany(searchUser.query);
   }
 }
