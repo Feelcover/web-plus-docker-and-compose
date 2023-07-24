@@ -1,114 +1,114 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { HashService } from 'src/hash/hash.service';
 import { User } from './entities/user.entity';
-import { FindManyOptions, FindOneOptions, Repository } from 'typeorm';
-import { CreateUserDto } from './dto/create-user.dto';
-import {
-  USER_ALREADY_EMAIL_EXIST,
-  USER_ALREADY_USERNAME_EXIST,
-} from 'src/utils/constants/users';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { plainToClass } from 'class-transformer';
-import { Wish } from 'src/wishes/entities/wish.entity';
+import { Repository } from 'typeorm';
+import { hashPassword } from 'src/helpers/hash';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
-    private hashService: HashService,
-  ) {}
+    @InjectRepository(User) private userRepo: Repository<User>,
+  ) { }
 
-  async create(createUserDto: CreateUserDto) {
-    const { email, username, password } = createUserDto;
-    const userEmail = await this.findOne({
-      where: [{ email }],
-    });
-    const userName = await this.findOne({
-      where: [{ username }],
-    });
-    if (userEmail) {
-      throw new ConflictException(USER_ALREADY_EMAIL_EXIST);
-    }
-    if (userName) {
-      throw new ConflictException(USER_ALREADY_USERNAME_EXIST);
-    }
-
-    const hash = await this.hashService.generate(password);
-    const newUser = this.usersRepository.create({
-      ...createUserDto,
-      password: hash,
+  async getProfile(username: string): Promise<User> {
+    const user = await this.userRepo.findOne({
+      where: { username },
+      select: {
+        username: true,
+        about: true,
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        avatar: true,
+        email: true,
+      },
+      relations: {
+        wishes: true,
+        offers: true,
+      },
     });
 
-    return this.usersRepository.save(newUser);
-  }
-
-  async findAll(query: FindManyOptions<User>): Promise<User[]> {
-    return this.usersRepository.find(query);
-  }
-
-  async findOne(id: FindOneOptions<User>): Promise<User> {
-    const user = await this.usersRepository.findOne(id);
-    return user;
-  }
-
-  async findMany(query: string): Promise<User[]> {
-    return this.findAll({
-      where: [{ username: query }, { email: query }],
-    });
-  }
-
-  async updateOne(id: number, updateUserDto: UpdateUserDto) {
-    const { email, username, password } = updateUserDto;
-
-    const user = await this.findOne({ where: { id } });
-
-    if (email) {
-      const emailInBase = await this.findOne({ where: { email } });
-
-      if (emailInBase && emailInBase.id !== id) {
-        throw new ConflictException(USER_ALREADY_EMAIL_EXIST);
-      }
+    if (!user) {
+      throw new NotFoundException('Ошибка загрузки профиля')
+    } else {
+      return user
     }
+  }
 
-    if (username) {
-      const userNameInBase = await this.findOne({ where: { username } });
-
-      if (userNameInBase && userNameInBase.id !== id) {
-        throw new ConflictException(USER_ALREADY_USERNAME_EXIST);
-      }
-    }
+  async updateProfile(user: User, userData: Partial<User>): Promise<User> {
+    const { password } = userData;
 
     if (password) {
-      updateUserDto.password = await this.hashService.generate(password);
+      const hashedPassword = await hashPassword(password);
+      userData = { ...userData, password: hashedPassword }
     }
 
-    const updateUser = { ...user, ...updateUserDto };
-    await this.usersRepository.update(id, updateUser);
+    const updatedUser = await this.userRepo.update(user.id, userData);
 
-    return this.findOne({ where: { id } });
+    if (!updatedUser) {
+      throw new BadRequestException('Ошибка запроса на изменение профиля');
+    } else {
+      return this.getUserById(user.id);
+    }
   }
 
-  getByUsername(username: string): Promise<User> {
-    return this.findOne({ where: { username } }).then((user) =>
-      plainToClass(User, user, { excludePrefixes: ['password'] }),
-    );
+  async getProfileWishes(id: number) {
+    const user = await this.userRepo.findOne({
+      where: {
+        id
+      },
+      relations: ['wishes']
+    });
+
+    if (!user) {
+      throw new NotFoundException('Список желаний пуст');
+    } else {
+      return user.wishes;
+    }
   }
 
-  getMyWishes(userId: number): Promise<Wish | Wish[]> {
-    return this.findOne({
-      where: { id: userId },
-      relationLoadStrategy: 'join',
-      relations: { wishes: { owner: true } },
-    }).then((user) => user.wishes);
+  async getUser(username: string) {
+    const user = await this.userRepo.findOne({ where: { username } });
+
+    if (!user) {
+      throw new NotFoundException(`Пользователь ${username} не существует`);
+    } else {
+      return user;
+    }
   }
 
-  getUserWishes(username: string): Promise<Wish | Wish[]> {
-    return this.findOne({
+  async getUserById(id: number): Promise<User> {
+    const user = await this.userRepo.findOne({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Пользователь с id: ${id} не существует`);
+    } else {
+      return user;
+    }
+  }
+
+  async getUserWishes(username: string) {
+    const user = await this.userRepo.findOne({
       where: { username },
-      relationLoadStrategy: 'join',
-      relations: { wishes: true },
-    }).then((user) => user.wishes);
+      relations: ['wishes']
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Пользователя ${username} не существует`);
+    } else {
+      return user.wishes;
+    }
+  }
+
+  async findUser({ query }: { query: string }): Promise<User[]> {
+    const user = await this.userRepo.find({ where: { username: query } });
+
+    if (!user) {
+      throw new NotFoundException(`Пользователя ${query} не существует`);
+    } else {
+      return user;
+    }
   }
 }

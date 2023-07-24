@@ -1,34 +1,30 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { OffersService } from './offers.service';
+import { CreateOfferDto } from './dto/create-offer.dto';
 import { Offer } from './entities/offer.entity';
+import { JwtGuard } from 'src/auth/jwtGuard';
+import { AuthUser } from 'src/decorators/user.decorator';
 import { User } from 'src/users/entities/user.entity';
 
-@UseGuards(JwtGuard)
 @Controller('offers')
 export class OffersController {
-  constructor(private readonly offersService: OffersService) {}
+  constructor(private readonly offersService: OffersService) { }
 
+  @UseGuards(JwtGuard)
   @Post()
-  create(@Body() CreateOfferDto, @Req() req: Request & { user: User }) {
-    return this.offersService.create(CreateOfferDto, req.user.id);
+  createProfileOffer(@AuthUser() user: User, @Body() body: CreateOfferDto) {
+    return this.offersService.createOffer(body, user);
   }
 
+  @UseGuards(JwtGuard)
   @Get()
-  getAll(): Promise<Offer[]> {
-    return this.offersService.findAll();
+  getOffersInfo(): Promise<Offer[]> {
+    return this.offersService.getOffers();
   }
 
-  @Get(':id')
-  getOne(@Param('id') id: string): Promise<Offer> {
-    return this.offersService.findById(+id);
+  @UseGuards(JwtGuard)
+  @Get('/:id')
+  getOffersByIdInfo(@Param('id') id: string): Promise<Offer> {
+    return this.offersService.getOffersById(parseInt(id));
   }
 }

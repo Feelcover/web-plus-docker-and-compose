@@ -1,36 +1,31 @@
 import {
-  IsString,
-  Length,
   IsEmail,
+  IsString,
   IsUrl,
-  IsOptional,
+  MaxLength,
   MinLength,
 } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
-  @Length(2, 30, {
-    message: 'Имя должно быть от 2 до 30 символов',
-  })
+  @MinLength(1)
+  @MaxLength(64)
   username: string;
 
   @IsString()
-  @Length(2, 200, {
-    message: 'Описание должно быть от 2 до 200 символов',
-  })
-  @IsOptional()
-  about: string;
-
-  @IsOptional()
-  @IsString()
-  @IsUrl({}, { message: 'Введите корректную ссылку' })
-  avatar: string;
+  @MinLength(0)
+  @MaxLength(200)
+  about?: string;
 
   @IsString()
-  @IsEmail({}, { message: 'Введите корректный Email' })
+  @IsUrl({ default: 'https://i.pravatar.cc/150?img=3' })
+  avatar?: string;
+
+  @IsString()
+  @IsEmail()
   email: string;
 
   @IsString()
-  @MinLength(4, { message: 'Пароль должен быть длинной минимум 4 символа' })
+  @MinLength(2)
   password: string;
 }

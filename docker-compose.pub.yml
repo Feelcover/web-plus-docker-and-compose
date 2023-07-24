@@ -1,51 +1,56 @@
-version: '3'
-
+version: '3.2'
 services:
   backend:
-    container_name: 'kupipodariday-backend'
-    image: waysamurai/kupipodariday-backend:1.0.0
-    env_file: .env
-    restart: always
+    container_name: backend
+    build:
+      context: backend
+      dockerfile: Dockerfile.pub
+    env_file: .env.example
     ports:
       - '4000:3000'
     depends_on:
       - postgres
-    networks: 
-      - backend
-
+    restart: unless-stopped
+    networks:
+      - backend_network
+    volumes:
+      - type: bind
+        source: ./backend/src
+        target: /app/src
   frontend:
-    container_name: 'kupipodariday-frontend'
-    image:  waysamurai/kupipodariday-frontend:1.0.0
-    restart: always
+    container_name: frontend
+    build:
+      context: backend
+      dockerfile: Dockerfile.pub
     ports:
-      - '3001:80'
+      - '3001:3000'
+    restart: unless-stopped
     networks:
-      - frontend
-
+      - frontend_network
+    volumes:
+      - type: bind
+        source: ./frontend/src
+        target: /app/src
   postgres:
-    container_name: 'kupipodariday-database'
-    image: postgres:12.12-alpine
-    restart: always
-    env_file: .env
-    volumes: 
-      - ~/pg_data:/var/lib/postgresql/data
-    
+    container_name: postgres
+    image: postgres
+    restart: unless-stopped
+    env_file: .env.example
+    volumes:
+      - pg_data:/data/postgres
     networks:
-      - backend
-
+      - backend_network
   adminer:
     image: adminer
-    restart: always
-    ports: 
-      - 8080:8080
+    restart: unless-stopped
+    ports:
+      - 8081:8080
     depends_on:
-      - postgres  
-    networks: 
-      - backend
-
-volumes: 
-  postgres_data: 
-
+      - postgres
+    networks:
+      - backend_network
+volumes:
+  pg_data:
 networks:
-  backend:
-  frontend:
+  backend_network:
+  frontend_network:

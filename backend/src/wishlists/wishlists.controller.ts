@@ -1,54 +1,53 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  Param,
-  Patch,
   Post,
-  Req,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
 } from '@nestjs/common';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { WishlistsService } from './wishlists.service';
 import { CreateWishlistDto } from './dto/create-wishlist.dto';
 import { UpdateWishlistDto } from './dto/update-wishlist.dto';
-import { WishlistsService } from './wishlists.service';
+import { JwtGuard } from 'src/auth/jwtGuard';
 import { User } from 'src/users/entities/user.entity';
+import { AuthUser } from 'src/decorators/user.decorator';
+import { Wishlist } from './entities/wishlist.entity';
+import { DeleteResult } from 'typeorm';
 
-@UseGuards(JwtGuard)
 @Controller('wishlistlists')
 export class WishlistsController {
-  constructor(private readonly wishListService: WishlistsService) {}
+  constructor(private readonly wishlistsService: WishlistsService) { }
 
+  @UseGuards(JwtGuard)
   @Get()
-  getWishlists(@Req() req: Request & { user: User }) {
-    return this.wishListService.getWishLists(req.user.id);
+  getWishlistsInfo(): Promise<Wishlist[]> {
+    return this.wishlistsService.getWishlists();
   }
 
-  @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.wishListService.getById(+id);
-  }
-
+  @UseGuards(JwtGuard)
   @Post()
-  create(
-    @Body() createWishlistDto: CreateWishlistDto,
-    @Req() req: Request & { user: User },
-  ) {
-    return this.wishListService.create(createWishlistDto, req.user.id);
+  createProfileWishlist(@AuthUser() user: User, @Body() body: CreateWishlistDto): Promise<Wishlist> {
+    return this.wishlistsService.createWishlist(body, user);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: Request & { user: User }) {
-    return this.wishListService.delete(+id, req.user.id);
+  @UseGuards(JwtGuard)
+  @Get(':id')
+  getWishlistInfoById(@Param('id') id: number): Promise<Wishlist> {
+    return this.wishlistsService.getWishlistById(id);
   }
 
+  @UseGuards(JwtGuard)
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateWishlistDto: UpdateWishlistDto,
-    @Req() req: Request & { user: User },
-  ) {
-    return this.wishListService.update(+id, updateWishlistDto, req.user.id);
+  updateWishlistById(@AuthUser() user: User, @Param('id') id: number, @Body() body: UpdateWishlistDto): Promise<Wishlist> {
+    return this.wishlistsService.updateWishlist(id, body, user);
+  }
+
+  @UseGuards(JwtGuard)
+  @Delete(':id')
+  deleteWishlistById(@Param('id') id: number): Promise<DeleteResult> {
+    return this.wishlistsService.deleteWishlist(id);
   }
 }

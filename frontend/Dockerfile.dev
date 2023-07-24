@@ -1,6 +1,12 @@
-FROM node:16-alpine AS builder
+#Один слой для разработки
+FROM node:16-alpine
+#Устанавливаем рабочую директорию
 WORKDIR /app
+#Копируем файлы с зависимостями
 COPY package*.json ./
-RUN npm ci
-COPY . .
+#Устанавливаем 
+RUN npm i
+#Копируем все содержимое корневой папки в /app
+COPY . ./
+#Запускаем обычное react приложение в режиме разработки
 CMD ["npm", "run", "start"]

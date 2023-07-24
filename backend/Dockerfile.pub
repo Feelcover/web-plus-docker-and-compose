@@ -1,15 +1,28 @@
+#Этап сборки
 FROM node:16-alpine AS builder
+#Устанавливаем рабочую директорию
 WORKDIR /app
+#Копируем файлы с зависимостями
 COPY package*.json ./
+#Устанавливаем 
 RUN npm i
-COPY . .
-RUN npm run build && rm -rf ./src && rm -rf node ./node_modules
+#Копируем все содержимое корневой папки в /app
+COPY . ./
+#запускаем сборку / удаляем исходники в src / удаляем зависимости
+RUN npm run build \
+  && rm -rf ./src \
+  && rm -rf node ./node_modules
 
+#Этап развертывания приложения через утилиту PM2
 FROM node:16-alpine AS backend
 WORKDIR /app
-COPY package*.json .
-RUN npm ci --omit=dev --no-audit --no-fund && npm i -g pm2
+COPY package*.json ./
+#Устанавливаем зависимости кроме dev
+RUN npm i --omit=dev --no-audit --no-fund && npm i -g pm2
+#Копируем файлы из этапа builder
+COPY --from=builder /app/ecosystem.config.js ./ecosystem.config.js
 COPY --from=builder /app/dist ./dist
-COPY ./ecosystem.config.js .
 EXPOSE 3000
-CMD ["pm2-runtime", "start", "ecosystem.config.js"]
+
+#Запуск бэкенда через утилиту pm2 через script файла экосистемы. ecosystem.config.js - содержит точку входа бэк части приложения т. е. ./dist/main.js
+CMD [ "pm2-runtime", "start", "ecosystem.config.js" ]

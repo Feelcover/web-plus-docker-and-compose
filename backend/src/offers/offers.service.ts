@@ -1,84 +1,74 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { CreateOfferDto } from './dto/create-offer.dto';
-import { DataSource, FindManyOptions, Repository } from 'typeorm';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Offer } from './entities/offer.entity';
+import { Repository } from 'typeorm';
+import { User } from 'src/users/entities/user.entity';
 import { WishesService } from 'src/wishes/wishes.service';
-import {
-  OFFER_NOT_FOUND,
-  WISH_OWNER_CAN_NOT_PAY,
-} from 'src/utils/constants/offer';
-import { Wish } from 'src/wishes/entities/wish.entity';
+import { CreateOfferDto } from './dto/create-offer.dto';
 
 @Injectable()
 export class OffersService {
   constructor(
-    private dataSource: DataSource,
-    @InjectRepository(Offer)
-    private offerRepository: Repository<Offer>,
-    private wishesService: WishesService,
-  ) {}
+    @InjectRepository(Offer) private offerRepo: Repository<Offer>,
+    private readonly wishesService: WishesService,
+  ) { }
 
-  async findOne(query: FindManyOptions<Offer>) {
-    return this.offerRepository.findOne(query);
+  async createOffer(body: CreateOfferDto, user: User) {
+    const { itemId, amount } = body;
+    const sponsoredWish = await this.wishesService.getWishById(itemId);
+
+    if (!sponsoredWish) {
+      throw new NotFoundException('Подарок на который скидываются не найден');
+    } else if (sponsoredWish.owner.id === user.id) {
+      throw new ForbiddenException('Нельзя отправлять деньги на собственные подарки');
+    } else if (sponsoredWish.raised + amount > sponsoredWish.price) {
+      throw new BadRequestException('Укажите меньшую сумму для внесения')
+    } else {
+      const newOffer = await this.offerRepo.create({
+        ...body,
+        user,
+        item: sponsoredWish,
+      })
+
+      try {
+        await this.offerRepo.save(newOffer)
+        await this.wishesService.updateWishRaised(sponsoredWish, amount)
+      } catch {
+        throw new InternalServerErrorException('Внутренняя ошибка сервера')
+      }
+
+      return newOffer
+    }
   }
 
-  async findAll(): Promise<Offer[]> {
-    return await this.offerRepository.find({
-      relations: ['item', 'user'],
+  async getOffers(): Promise<Offer[]> {
+    const offers = this.offerRepo.find({
+      relations: {
+        user: true,
+        item: true
+      }
     });
+
+    if (!offers) {
+      throw new NotFoundException('Предложения скинуться не найдено');
+    } else {
+      return offers;
+    }
   }
 
-  async findById(id: number): Promise<Offer> {
-    const offer = await this.offerRepository.findOne({
-      where: { id },
-      relations: ['item', 'user'],
+  async getOffersById(id: number): Promise<Offer> {
+    const offer = await this.offerRepo.findOne({
+      where: { id: id },
+      relations: {
+        user: true,
+        item: true
+      }
     });
 
     if (!offer) {
-      throw new NotFoundException(OFFER_NOT_FOUND);
+      throw new NotFoundException('Предложение скинуться не найдено');
+    } else {
+      return offer;
     }
-
-    delete offer.user.password;
-
-    return offer;
-  }
-
-  async create(createOfferDto: CreateOfferDto, userId: number) {
-    const { amount, itemId } = createOfferDto;
-    const wish = await this.wishesService.findOne({
-      where: { id: itemId },
-      relations: ['owner'],
-    });
-    const { price, raised, owner } = wish;
-
-    if (owner.id === userId) {
-      throw new ForbiddenException(WISH_OWNER_CAN_NOT_PAY);
-    }
-
-    if (amount + raised > price) {
-      throw new ForbiddenException(
-        `Сумма взноса превышает сумму остатка стоимости подарка на ${
-          amount + raised - price
-        } руб.`,
-      );
-    }
-    const offer = this.offerRepository.create({
-      ...createOfferDto,
-      user: { id: userId },
-      item: { id: itemId },
-    });
-
-    await this.dataSource.transaction(async (transManager) => {
-      await transManager.insert<Offer>(Offer, offer);
-      await transManager.update<Wish>(Wish, itemId, {
-        raised: amount + raised,
-      });
-    });
-    return {};
   }
 }
